@@ -31,7 +31,7 @@ def save_predictions(model, output_file=OUTPUT_PATH, input_file = TESTING_PATH):
     output.to_csv(output_file)
     return output
 
-def perform_cross_validation(model_config, x, y, k_folds, loss='binary_crossentropy'):
+def perform_cross_validation(model_config, optimizer, x, y, k_folds, loss='binary_crossentropy'):
     skf = StratifiedKFold(y, k_folds)
     error = 0.0
     for train_idx, test_idx in skf:
@@ -40,7 +40,7 @@ def perform_cross_validation(model_config, x, y, k_folds, loss='binary_crossentr
         x_test = x.ix[test_idx]
         y_test = y.ix[test_idx]
         model = model_from_json(model_config)
-        model.compile(loss='binary_crossentropy', optimizer=sgd, metrics=['accuracy'])
+        model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy'])
         model.fit(np.array(x_train), np.array(y_train), nb_epoch=50, batch_size=1000, verbose=0)
         predictions = model.predict(np.array(x_test))
         error += log_loss(np.array(y_test), predictions.flatten())
@@ -75,7 +75,7 @@ if __name__ == '__main__':
             model.add(Dense(n, input_dim=n_features, activation='sigmoid', W_regularizer=l2(r)))
             model.add(Dense(1, activation='sigmoid', W_regularizer=l2(r)))
             sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
-            cv_error = perform_cross_validation(model.to_json(), x_train, y_train, k_folds)
+            cv_error = perform_cross_validation(model.to_json(), sgd, x_train, y_train, k_folds)
             if cv_error < best_cv_error:
                 best_cv_error = cv_error
                 best_model_config = model.to_json()
